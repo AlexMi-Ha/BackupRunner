@@ -31,10 +31,11 @@ public class UnitProcessor(Unit unit) {
             _logger.Log("FollowSymlinks is not yet supported! Ignoring symlinks!", LogLevel.WARN);
             _unit.FollowSymlinks = false;
         }
-        
+
         var builder = TarBuilder.Construct()
             .ExcludeExtensions(_unit.Excludes)
-            .FollowSymlinks(_unit.FollowSymlinks);
+            .FollowSymlinks(_unit.FollowSymlinks)
+            .IgnoreGitRepositories(_unit.IgnoreGitRepositories);
 
         foreach (var source in _unit.Sources) {
             var archiveName = _unit.UseAbsolutePaths ? source : Path.GetFileName(source);

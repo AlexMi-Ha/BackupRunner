@@ -9,7 +9,9 @@ public class TarBuilder {
 
     private readonly List<(string filepath, string entryName)> _entries = new();
     private readonly HashSet<string> _excludedExtensions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _ignoredGitRepositories = new(StringComparer.OrdinalIgnoreCase);
     private bool _followSymlinks = false;
+    private bool _ignoreGitRepositories = false;
     
     private Logger _logger = Logger.GetLogger();
 
@@ -37,8 +39,15 @@ public class TarBuilder {
         }
 
         var baseDirLength = directoryPath.TrimEnd(Path.DirectorySeparatorChar).Length + 1;
+        if (_ignoreGitRepositories) {
+            FindGitRepositories(directoryPath);
+        }
         foreach (var filePath in Directory.EnumerateFiles(directoryPath, "*", SearchOption.AllDirectories)) {
             if (IsExcluded(filePath)) {
+                continue;
+            }
+
+            if (_ignoreGitRepositories && IsInIgnoredGitRepo(filePath)) {
                 continue;
             }
             var relativePath = filePath.Substring(baseDirLength).Replace('\\', '/');
@@ -48,6 +57,11 @@ public class TarBuilder {
             AddFile(filePath, archivePath);
         }
 
+        return this;
+    }
+
+    public TarBuilder IgnoreGitRepositories(bool ignoreGitRepositories) {
+        _ignoreGitRepositories = ignoreGitRepositories;
         return this;
     }
 
@@ -94,6 +108,18 @@ public class TarBuilder {
             entry.Name = entryName;
             tarArchive.WriteEntry(entry, true);
         }
+    }
+    
+    private void FindGitRepositories(string directoryPath) {
+        foreach (var dir in Directory.EnumerateDirectories(directoryPath, "*", SearchOption.AllDirectories)) {
+            if (Directory.Exists(Path.Combine(dir, ".git"))) {
+                _ignoredGitRepositories.Add(dir);
+            }
+        }
+    }
+
+    private bool IsInIgnoredGitRepo(string filePath) {
+        return _ignoredGitRepositories.Any(repoPath => filePath.StartsWith(repoPath, StringComparison.OrdinalIgnoreCase));
     }
 
     private bool IsSymlink(FileInfo file) {

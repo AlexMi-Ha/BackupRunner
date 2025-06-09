@@ -11,6 +11,7 @@ public class Unit {
 
     public bool UseAbsolutePaths { get; set; } = true;
     public bool FollowSymlinks { get; set; } = false;
+    public bool IgnoreGitRepositories { get; set; } = true;
     
     public int KeepLastBackups { get; set; } = 3;
 
