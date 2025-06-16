@@ -14,6 +14,9 @@ LogLevel logLevel = LogLevel.INFO;
 string? logPath = null;
 LogMode logMode = LogMode.OVERWRITE;
 
+bool loadBackup = false;
+bool forceLoadBackup = false;
+
 for (int i = 0; i < args.Length; i++) {
     switch (args[i]) {
         case "-c":
@@ -48,10 +51,22 @@ for (int i = 0; i < args.Length; i++) {
                 return;
             }
             break;
+        case "--load-backup":
+            loadBackup = true;
+            break;
+        case "-f":
+        case "--force-load":
+            forceLoadBackup = true;
+            break;
         default:
             PrintHelp();
             return;
     }
+}
+
+if (!loadBackup && forceLoadBackup) {
+    Console.WriteLine("Cannot use --force-load when not loading the backup");
+    return;
 }
 
 if (string.IsNullOrEmpty(configPath) || !File.Exists(configPath)) {
@@ -84,7 +99,12 @@ try {
 
 try {
     var processor = new ConfigProcessor(config);
-    processor.ProcessConfig();
+    if (loadBackup) {
+        processor.LoadConfig(forceLoadBackup);
+    }
+    else {
+        processor.BackupConfig();
+    }
 } catch (Exception ex) {
     Console.WriteLine("Failed processing config");
     Console.WriteLine(ex.Message);
@@ -101,6 +121,8 @@ Options:
   -v, --verbose [level]   Enable verbose output. Optional level: Debug, Info, Warn, Error
   --log-path <path>             Optional path to a log file
   --log-mode <append|overwrite> Optional log mode for file output (default: overwrite)
+  --load-backup           Loads the latest backup archive to the system
+  -f, --force-load        Forces and overwrites existing files when loading the backup
   -h, --help              Show this help message
 ");
 }
